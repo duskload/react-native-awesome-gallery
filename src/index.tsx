@@ -122,6 +122,7 @@ type Props<T> = EventsCallbacks & {
   swipeEnabled: boolean;
   doubleTapEnabled: boolean;
   disableTransitionOnScaledImage: boolean;
+  disableSwipeToCloseOnScaledImage: boolean;
   hideAdjacentImagesOnScaledImage: boolean;
   disableVerticalSwipe: boolean;
   disableSwipeUp?: boolean;
@@ -168,6 +169,7 @@ const ResizableImage = React.memo(
     swipeEnabled,
     doubleTapEnabled,
     disableTransitionOnScaledImage,
+    disableSwipeToCloseOnScaledImage,
     hideAdjacentImagesOnScaledImage,
     disableVerticalSwipe,
     disableSwipeUp,
@@ -721,7 +723,16 @@ const ResizableImage = React.memo(
           );
         }
 
-        if (onSwipeToClose && shouldClose.value) {
+        const isScaled = scale.value > 1;
+
+        const isScaledAndDisabledSwipeToClose =
+          disableSwipeToCloseOnScaledImage && isScaled;
+
+        if (
+          onSwipeToClose &&
+          shouldClose.value &&
+          !isScaledAndDisabledSwipeToClose
+        ) {
           offset.y.value = withDecay({
             velocity: velocityY,
           });
@@ -925,6 +936,7 @@ type GalleryProps<T> = EventsCallbacks & {
   swipeEnabled?: boolean;
   doubleTapEnabled?: boolean;
   disableTransitionOnScaledImage?: boolean;
+  disableSwipeToCloseOnScaledImage?: boolean;
   hideAdjacentImagesOnScaledImage?: boolean;
   disableVerticalSwipe?: boolean;
   disableSwipeUp?: boolean;
@@ -947,6 +959,7 @@ const GalleryComponent = <T extends any>(
     swipeEnabled = true,
     doubleTapEnabled = true,
     disableTransitionOnScaledImage = false,
+    disableSwipeToCloseOnScaledImage = false,
     hideAdjacentImagesOnScaledImage = false,
     onIndexChange,
     style,
@@ -1075,6 +1088,7 @@ const GalleryComponent = <T extends any>(
                 swipeEnabled,
                 doubleTapEnabled,
                 disableTransitionOnScaledImage,
+                disableSwipeToCloseOnScaledImage,
                 hideAdjacentImagesOnScaledImage,
                 disableVerticalSwipe,
                 disableSwipeUp,
