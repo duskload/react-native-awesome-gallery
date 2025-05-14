@@ -409,105 +409,97 @@ export const ResizableImage = React.memo(
       .enabled(swipeEnabled)
       .minDistance(10)
       .maxPointers(1)
+
       .onBegin(() => {
         'worklet';
         if (!isActive.value) return;
+
         const newWidth = scale.value * layout.x.value;
         const newHeight = scale.value * layout.y.value;
-        if (
-          isMoving.x.value &&
-          offset.x.value < (newWidth - width) / 2 - translation.x.value &&
-          offset.x.value > -(newWidth - width) / 2 - translation.x.value
-        ) {
+        const halfX = (newWidth - width) / 2 - translation.x.value;
+        const halfY = (newHeight - height) / 2 - translation.y.value;
+
+        if (isMoving.x.value && Math.abs(offset.x.value) < halfX) {
           cancelAnimation(offset.x);
         }
-
-        if (
-          isMoving.y.value &&
-          offset.y.value < (newHeight - height) / 2 - translation.y.value &&
-          offset.y.value > -(newHeight - height) / 2 - translation.y.value
-        ) {
+        if (isMoving.y.value && Math.abs(offset.y.value) < halfY) {
           cancelAnimation(offset.y);
         }
       })
-      .onStart(({ velocityY, velocityX }) => {
+
+      .onStart(({ velocityX, velocityY }) => {
         'worklet';
         if (!isActive.value) return;
 
-        if (onPanStart) {
-          runOnJS(onPanStart)();
-        }
-
         onStart();
+        if (onPanStart) runOnJS(onPanStart)();
+
         isVertical.value = Math.abs(velocityY) > Math.abs(velocityX);
         initialTranslateX.value = translateX.value;
       })
+
       .onUpdate(({ translationX, translationY, velocityY }) => {
         'worklet';
         if (!isActive.value) return;
         if (disableVerticalSwipe && scale.value === 1 && isVertical.value)
           return;
 
-        const x = getEdgeX();
+        const edgeX = getEdgeX();
+        const edgeY = getEdgeY();
+        const newHeight = scale.value * layout.y.value;
 
+        // Horizontal pan
         if (!isVertical.value || scale.value > 1) {
           const clampedX = clamp(
             translationX,
-            x[0] - offset.x.value,
-            x[1] - offset.x.value
+            edgeX[0] - offset.x.value,
+            edgeX[1] - offset.x.value
           );
+          const baseX = rtl
+            ? initialTranslateX.value - translationX
+            : initialTranslateX.value + translationX;
+          const transX = baseX - clampedX;
 
-          const transX = rtl
-            ? initialTranslateX.value - translationX + clampedX
-            : initialTranslateX.value + translationX - clampedX;
+          const disableTransition =
+            disableTransitionOnScaledImage && scale.value > 1;
 
           if (
             hideAdjacentImagesOnScaledImage &&
             disableTransitionOnScaledImage
           ) {
-            const disabledTransition =
-              disableTransitionOnScaledImage && scale.value > 1;
-
             const moveX = withRubberBandClamp(
               transX,
               0.55,
               width,
-              disabledTransition
+              disableTransition
                 ? [getPosition(index), getPosition(index + 1)]
                 : [getPosition(length - 1), 0]
             );
 
-            if (!disabledTransition) {
+            if (!disableTransition) {
               translateX.value = moveX;
             }
-            if (disabledTransition) {
-              translation.x.value = rtl
-                ? clampedX - moveX + translateX.value
-                : clampedX + moveX - translateX.value;
-            } else {
-              translation.x.value = clampedX;
-            }
+
+            translation.x.value = rtl
+              ? clampedX - moveX + translateX.value
+              : clampedX + moveX - translateX.value;
           } else {
-            if (loop) {
-              translateX.value = transX;
-            } else {
-              translateX.value = withRubberBandClamp(
-                transX,
-                0.55,
-                width,
-                disableTransitionOnScaledImage && scale.value > 1
-                  ? [getPosition(index), getPosition(index + 1)]
-                  : [getPosition(length - 1), 0]
-              );
-            }
+            translateX.value = loop
+              ? transX
+              : withRubberBandClamp(
+                  transX,
+                  0.55,
+                  width,
+                  disableTransition
+                    ? [getPosition(index), getPosition(index + 1)]
+                    : [getPosition(length - 1), 0]
+                );
+
             translation.x.value = clampedX;
           }
         }
 
-        const newHeight = scale.value * layout.y.value;
-
-        const edgeY = getEdgeY();
-
+        // Vertical pan
         if (newHeight > height) {
           translation.y.value = withRubberBandClamp(
             translationY,
@@ -522,38 +514,34 @@ export const ResizableImage = React.memo(
           translation.y.value = translationY;
         }
 
+        // Swipe to close
         if (isVertical.value && newHeight <= height) {
-          const destY = translationY + velocityY * 0.2;
+          const projectedY = translationY + velocityY * 0.2;
           shouldClose.value = disableSwipeUp
-            ? destY > 220
-            : Math.abs(destY) > 220;
+            ? projectedY > 220
+            : Math.abs(projectedY) > 220;
         }
       })
+
       .onEnd(({ velocityX, velocityY }) => {
         'worklet';
         if (!isActive.value) return;
 
         const newHeight = scale.value * layout.y.value;
-
+        const newWidth = scale.value * layout.x.value;
         const edgeX = getEdgeX();
 
-        if (
-          Math.abs(translateX.value - getPosition()) >= 0 &&
-          edgeX.some((x) => x === translation.x.value + offset.x.value)
-        ) {
-          let snapPoints = [index - 1, index, index + 1]
-            .filter((_, y) => {
-              if (loop) return true;
+        const inEdge = edgeX.some(
+          (x) => x === translation.x.value + offset.x.value
+        );
 
-              if (y === 0) {
-                return !isFirst;
-              }
-              if (y === 2) {
-                return !isLast;
-              }
-              return true;
+        if (Math.abs(translateX.value - getPosition()) >= 0 && inEdge) {
+          let snapPoints = [index - 1, index, index + 1]
+            .filter((_, i) => {
+              if (loop) return true;
+              return (i === 0 && !isFirst) || (i === 2 && !isLast) || i === 1;
             })
-            .map((i) => getPosition(i));
+            .map(getPosition);
 
           if (disableTransitionOnScaledImage && scale.value > 1) {
             snapPoints = [getPosition(index)];
@@ -571,11 +559,11 @@ export const ResizableImage = React.memo(
             if (loop) {
               if (nextIndex === length) {
                 currentIndex.value = 0;
-                translateX.value = translateX.value - getPosition(length);
+                translateX.value -= getPosition(length);
                 snapTo = 0;
               } else if (nextIndex === -1) {
                 currentIndex.value = length - 1;
-                translateX.value = translateX.value + getPosition(length);
+                translateX.value += getPosition(length);
                 snapTo = getPosition(length - 1);
               } else {
                 currentIndex.value = nextIndex;
@@ -587,8 +575,6 @@ export const ResizableImage = React.memo(
 
           translateX.value = withSpring(snapTo, springConfig);
         } else {
-          const newWidth = scale.value * layout.x.value;
-
           isMoving.x.value = 1;
           offset.x.value = withDecaySpring(
             {
@@ -606,18 +592,14 @@ export const ResizableImage = React.memo(
         }
 
         const isScaled = scale.value > 1;
-
-        const isScaledAndDisabledSwipeToClose =
-          disableSwipeToCloseOnScaledImage && isScaled;
-
-        if (
+        const shouldCloseNow =
           onSwipeToClose &&
           shouldClose.value &&
-          !isScaledAndDisabledSwipeToClose
-        ) {
-          offset.y.value = withDecay({
-            velocity: velocityY,
-          });
+          !(disableSwipeToCloseOnScaledImage && isScaled);
+
+        if (shouldCloseNow) {
+          offset.y.value = withDecay({ velocity: velocityY });
+          // @ts-expect-error
           runOnJS(onSwipeToClose)();
           return;
         }
@@ -642,11 +624,12 @@ export const ResizableImage = React.memo(
         } else {
           const diffY =
             translation.y.value + offset.y.value - (newHeight - height) / 2;
+          const symmetricY = height - diffY - newHeight;
 
-          if (newHeight <= height && diffY !== height - diffY - newHeight) {
-            const moveTo = diffY - (height - newHeight) / 2;
-
-            translation.y.value = withTiming(translation.y.value - moveTo);
+          if (newHeight <= height && diffY !== symmetricY) {
+            translation.y.value = withTiming(
+              translation.y.value - (diffY - (height - newHeight) / 2)
+            );
           }
         }
       });
