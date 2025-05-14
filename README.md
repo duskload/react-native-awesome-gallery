@@ -71,7 +71,7 @@ return (
 ## Props
 
 | Prop                             | Description                                                                                                                                                                     | Type                                                                                             | Default                                                                |
-|----------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------|------------------------------------------------------------------------|
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------- |
 | data                             | Array of items to render                                                                                                                                                        | `T[]`                                                                                            | `undefined`                                                            |
 | renderItem?                      | Callback func which can be used to render custom image component, e.g `FastImage`. NOTE: You have to call `setImageDimensions({width, height})` parameter after image is loaded | `(renderItemInfo: {item: T, index: number, setImageDimensions: Function}) => React.ReactElement` | `undefined`                                                            |
 | keyExtractor?                    | Callback func which provides unique keys for items                                                                                                                              | `(item: T, index: number) => string or number`                                                   | Takes `id` or `key` or `_id` from `Item`, otherwise puts `Item` as key |
@@ -98,7 +98,7 @@ return (
 ## Events
 
 | Prop                                                             | Description                                                                                                                    | Type       |
-|------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------|------------|
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ---------- |
 | onSwipeToClose()                                                 | Fired when user swiped to top/bottom                                                                                           | `Function` |
 | onTranslationYChange(translationY: number, shouldClose: boolean) | `'worklet';` Fired when user is swiping vertically to close the gallery                                                        | `Worklet`  |
 | onTap()                                                          | Fired when user tap on image                                                                                                   | `Function` |
@@ -115,11 +115,11 @@ import Gallery, { GalleryRef } from 'react-native-awesome-gallery';
 
 // ...
 
-const ref = useRef<GalleryRef>(null);
+const ref = useRef < GalleryRef > null;
 ```
 
 | Prop     | Description               | Type                                             |
-|----------|---------------------------|--------------------------------------------------|
+| -------- | ------------------------- | ------------------------------------------------ |
 | setIndex | Sets active index         | `(newIndex: number, animated?: boolean) => void` |
 | reset    | Resets scale, translation | `(animated?: boolean) => void`                   |
 

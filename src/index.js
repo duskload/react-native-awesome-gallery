@@ -28,7 +28,6 @@ import {
   withRubberBandClamp,
   resizeImage,
 } from './utils';
-
 import {
   DOUBLE_TAP_SCALE,
   MAX_SCALE,
@@ -36,32 +35,17 @@ import {
   rtl,
 } from './constants';
 import { snapPoint, useVector } from './utils/misc';
-
-import type {
-  RenderItemInfo,
-  Props,
-  ItemRef,
-  GalleryReactRef,
-  GalleryProps,
-} from './types';
-
-const defaultRenderImage = ({
-  item,
-  setImageDimensions,
-}: RenderItemInfo<any>) => {
-  return (
-    <Image
-      onLoad={(e) => {
-        const { height: h, width: w } = e.nativeEvent.source;
-        setImageDimensions({ height: h, width: w });
-      }}
-      source={{ uri: item }}
-      resizeMode="contain"
-      style={StyleSheet.absoluteFillObject}
-    />
-  );
+const defaultRenderImage = ({ item, setImageDimensions }) => {
+  return React.createElement(Image, {
+    onLoad: (e) => {
+      const { height: h, width: w } = e.nativeEvent.source;
+      setImageDimensions({ height: h, width: w });
+    },
+    source: { uri: item },
+    resizeMode: 'contain',
+    style: StyleSheet.absoluteFillObject,
+  });
 };
-
 const springConfig = {
   damping: 800,
   mass: 1,
@@ -69,9 +53,8 @@ const springConfig = {
   restDisplacementThreshold: 0.02,
   restSpeedThreshold: 4,
 };
-
 const ResizableImage = React.memo(
-  <T extends any>({
+  ({
     item,
     translateX,
     index,
@@ -106,30 +89,22 @@ const ResizableImage = React.memo(
     onScaleChangeRange,
     onTranslationYChange,
     setRef,
-  }: Props<T>) => {
+  }) => {
     const CENTER = {
       x: width / 2,
       y: height / 2,
     };
-
     const offset = useVector(0, 0);
-
     const scale = useSharedValue(1);
-
     const translation = useVector(0, 0);
-
     const origin = useVector(0, 0);
-
     const adjustedFocal = useVector(0, 0);
-
     const originalLayout = useVector(width, 0);
     const layout = useVector(width, 0);
-
     const isActive = useDerivedValue(() => currentIndex.value === index, [
       currentIndex,
       index,
     ]);
-
     useAnimatedReaction(
       () => {
         return scale.value;
@@ -138,12 +113,10 @@ const ResizableImage = React.memo(
         if (!onScaleChange) {
           return;
         }
-
         if (!onScaleChangeRange) {
           runOnJS(onScaleChange)(scaleReaction);
           return;
         }
-
         if (
           scaleReaction > onScaleChangeRange.start &&
           scaleReaction < onScaleChangeRange.end
@@ -152,101 +125,73 @@ const ResizableImage = React.memo(
         }
       }
     );
-
-    const setAdjustedFocal = ({
-      focalX,
-      focalY,
-    }: Record<'focalX' | 'focalY', number>) => {
+    const setAdjustedFocal = ({ focalX, focalY }) => {
       'worklet';
       adjustedFocal.x.value = focalX - (CENTER.x + offset.x.value);
       adjustedFocal.y.value = focalY - (CENTER.y + offset.y.value);
     };
-
     const resetValues = (animated = true) => {
       'worklet';
-
       scale.value = animated ? withTiming(1) : 1;
       offset.x.value = animated ? withTiming(0) : 0;
       offset.y.value = animated ? withTiming(0) : 0;
       translation.x.value = animated ? withTiming(0) : 0;
       translation.y.value = animated ? withTiming(0) : 0;
     };
-
     const getEdgeX = () => {
       'worklet';
       const newWidth = scale.value * layout.x.value;
-
       const point = (newWidth - width) / 2;
-
       if (point < 0 || isNaN(point)) {
         return [-0, 0];
       }
-
       return [-point, point];
     };
-
-    const clampY = (value: number, newScale: number) => {
+    const clampY = (value, newScale) => {
       'worklet';
       const newHeight = newScale * layout.y.value;
       const point = (newHeight - height) / 2;
-
       if (newHeight < height) {
         return 0;
       }
       return clamp(value, -point, point);
     };
-
-    const clampX = (value: number, newScale: number) => {
+    const clampX = (value, newScale) => {
       'worklet';
       const newWidth = newScale * layout.x.value;
       const point = (newWidth - width) / 2;
-
       if (newWidth < width) {
         return 0;
       }
       return clamp(value, -point, point);
     };
-
     const getEdgeY = () => {
       'worklet';
-
       const newHeight = scale.value * layout.y.value;
-
       const point = (newHeight - height) / 2;
-
       if (isNaN(point)) {
         return [-0, 0];
       }
-
       return [-point, point];
     };
-
     const onStart = () => {
       'worklet';
-
       cancelAnimation(translateX);
-
       offset.x.value = offset.x.value + translation.x.value;
       offset.y.value = offset.y.value + translation.y.value;
-
       translation.x.value = 0;
       translation.y.value = 0;
     };
-
-    const getPosition = (i?: number) => {
+    const getPosition = (i) => {
       'worklet';
-
       return (
         -(width + emptySpaceWidth) * (typeof i !== 'undefined' ? i : index)
       );
     };
-
-    const getIndexFromPosition = (position: number) => {
+    const getIndexFromPosition = (position) => {
       'worklet';
-
       return Math.round(position / -(width + emptySpaceWidth));
     };
-
     useAnimatedReaction(
       () => {
         return {
@@ -272,26 +217,19 @@ const ResizableImage = React.memo(
         }
       }
     );
-
     useEffect(() => {
       setRef(index, {
-        reset: (animated: boolean) => resetValues(animated),
+        reset: (animated) => resetValues(animated),
       });
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [index]);
-
-    const setImageDimensions: RenderItemInfo<T>['setImageDimensions'] = ({
-      width: w,
-      height: h,
-    }) => {
+    const setImageDimensions = ({ width: w, height: h }) => {
       originalLayout.x.value = w;
       originalLayout.y.value = h;
-
       const imgLayout = resizeImage({ width: w, height: h }, { width, height });
       layout.x.value = imgLayout.width;
       layout.y.value = imgLayout.height;
     };
-
     useEffect(() => {
       if (originalLayout.x.value === 0 && originalLayout.y.value === 0) {
         return;
@@ -302,15 +240,12 @@ const ResizableImage = React.memo(
       });
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [width, height]);
-
-    const itemProps: RenderItemInfo<T> = {
+    const itemProps = {
       item,
       index,
       setImageDimensions,
     };
-
     const scaleOffset = useSharedValue(1);
-
     const pinchGesture = Gesture.Pinch()
       .enabled(pinchEnabled)
       .onStart(({ focalX, focalY }) => {
@@ -319,13 +254,9 @@ const ResizableImage = React.memo(
         if (onScaleStart) {
           runOnJS(onScaleStart)(scale.value);
         }
-
         onStart();
-
         scaleOffset.value = scale.value;
-
         setAdjustedFocal({ focalX, focalY });
-
         origin.x.value = adjustedFocal.x.value;
         origin.y.value = adjustedFocal.y.value;
       })
@@ -333,18 +264,14 @@ const ResizableImage = React.memo(
         'worklet';
         if (!isActive.value) return;
         if (numberOfPointers !== 2) return;
-
         const nextScale = withRubberBandClamp(
           s * scaleOffset.value,
           0.55,
           maxScale,
           [1, maxScale]
         );
-
         scale.value = nextScale;
-
         setAdjustedFocal({ focalX, focalY });
-
         translation.x.value =
           adjustedFocal.x.value +
           ((-1 * nextScale) / scaleOffset.value) * origin.x.value;
@@ -362,28 +289,22 @@ const ResizableImage = React.memo(
           resetValues();
         } else {
           const sc = Math.min(scale.value, maxScale);
-
           const newWidth = sc * layout.x.value;
           const newHeight = sc * layout.y.value;
-
           const nextTransX =
             scale.value > maxScale
               ? adjustedFocal.x.value +
                 ((-1 * maxScale) / scaleOffset.value) * origin.x.value
               : translation.x.value;
-
           const nextTransY =
             scale.value > maxScale
               ? adjustedFocal.y.value +
                 ((-1 * maxScale) / scaleOffset.value) * origin.y.value
               : translation.y.value;
-
           const diffX = nextTransX + offset.x.value - (newWidth - width) / 2;
-
           if (scale.value > maxScale) {
             scale.value = withTiming(maxScale);
           }
-
           if (newWidth <= width) {
             translation.x.value = withTiming(0);
           } else {
@@ -392,7 +313,6 @@ const ResizableImage = React.memo(
               translation.x.value = withTiming(nextTransX - diffX);
               moved = true;
             }
-
             if (newWidth + diffX < width) {
               translation.x.value = withTiming(
                 nextTransX + width - (newWidth + diffX)
@@ -403,9 +323,7 @@ const ResizableImage = React.memo(
               translation.x.value = withTiming(nextTransX);
             }
           }
-
           const diffY = nextTransY + offset.y.value - (newHeight - height) / 2;
-
           if (newHeight <= height) {
             translation.y.value = withTiming(-offset.y.value);
           } else {
@@ -414,7 +332,6 @@ const ResizableImage = React.memo(
               translation.y.value = withTiming(nextTransY - diffY);
               moved = true;
             }
-
             if (newHeight + diffY < height) {
               translation.y.value = withTiming(
                 nextTransY + height - (newHeight + diffY)
@@ -427,12 +344,10 @@ const ResizableImage = React.memo(
           }
         }
       });
-
     const isVertical = useSharedValue(false);
     const initialTranslateX = useSharedValue(0);
     const shouldClose = useSharedValue(false);
     const isMoving = useVector(0);
-
     useAnimatedReaction(
       () => {
         if (!onTranslationYChange) {
@@ -449,7 +364,6 @@ const ResizableImage = React.memo(
         }
       }
     );
-
     const panGesture = Gesture.Pan()
       .enabled(swipeEnabled)
       .minDistance(10)
@@ -466,7 +380,6 @@ const ResizableImage = React.memo(
         ) {
           cancelAnimation(offset.x);
         }
-
         if (
           isMoving.y.value &&
           offset.y.value < (newHeight - height) / 2 - translation.y.value &&
@@ -478,11 +391,9 @@ const ResizableImage = React.memo(
       .onStart(({ velocityY, velocityX }) => {
         'worklet';
         if (!isActive.value) return;
-
         if (onPanStart) {
           runOnJS(onPanStart)();
         }
-
         onStart();
         isVertical.value = Math.abs(velocityY) > Math.abs(velocityX);
         initialTranslateX.value = translateX.value;
@@ -492,27 +403,22 @@ const ResizableImage = React.memo(
         if (!isActive.value) return;
         if (disableVerticalSwipe && scale.value === 1 && isVertical.value)
           return;
-
         const x = getEdgeX();
-
         if (!isVertical.value || scale.value > 1) {
           const clampedX = clamp(
             translationX,
             x[0] - offset.x.value,
             x[1] - offset.x.value
           );
-
           const transX = rtl
             ? initialTranslateX.value - translationX + clampedX
             : initialTranslateX.value + translationX - clampedX;
-
           if (
             hideAdjacentImagesOnScaledImage &&
             disableTransitionOnScaledImage
           ) {
             const disabledTransition =
               disableTransitionOnScaledImage && scale.value > 1;
-
             const moveX = withRubberBandClamp(
               transX,
               0.55,
@@ -521,7 +427,6 @@ const ResizableImage = React.memo(
                 ? [getPosition(index), getPosition(index + 1)]
                 : [getPosition(length - 1), 0]
             );
-
             if (!disabledTransition) {
               translateX.value = moveX;
             }
@@ -548,11 +453,8 @@ const ResizableImage = React.memo(
             translation.x.value = clampedX;
           }
         }
-
         const newHeight = scale.value * layout.y.value;
-
         const edgeY = getEdgeY();
-
         if (newHeight > height) {
           translation.y.value = withRubberBandClamp(
             translationY,
@@ -566,7 +468,6 @@ const ResizableImage = React.memo(
         ) {
           translation.y.value = translationY;
         }
-
         if (isVertical.value && newHeight <= height) {
           const destY = translationY + velocityY * 0.2;
           shouldClose.value = disableSwipeUp
@@ -577,11 +478,8 @@ const ResizableImage = React.memo(
       .onEnd(({ velocityX, velocityY }) => {
         'worklet';
         if (!isActive.value) return;
-
         const newHeight = scale.value * layout.y.value;
-
         const edgeX = getEdgeX();
-
         if (
           Math.abs(translateX.value - getPosition()) >= 0 &&
           edgeX.some((x) => x === translation.x.value + offset.x.value)
@@ -589,7 +487,6 @@ const ResizableImage = React.memo(
           let snapPoints = [index - 1, index, index + 1]
             .filter((_, y) => {
               if (loop) return true;
-
               if (y === 0) {
                 return !isFirst;
               }
@@ -599,19 +496,15 @@ const ResizableImage = React.memo(
               return true;
             })
             .map((i) => getPosition(i));
-
           if (disableTransitionOnScaledImage && scale.value > 1) {
             snapPoints = [getPosition(index)];
           }
-
           let snapTo = snapPoint(
             translateX.value,
             rtl ? -velocityX : velocityX,
             snapPoints
           );
-
           const nextIndex = getIndexFromPosition(snapTo);
-
           if (currentIndex.value !== nextIndex) {
             if (loop) {
               if (nextIndex === length) {
@@ -629,11 +522,9 @@ const ResizableImage = React.memo(
               currentIndex.value = nextIndex;
             }
           }
-
           translateX.value = withSpring(snapTo, springConfig);
         } else {
           const newWidth = scale.value * layout.x.value;
-
           isMoving.x.value = 1;
           offset.x.value = withDecaySpring(
             {
@@ -649,12 +540,9 @@ const ResizableImage = React.memo(
             }
           );
         }
-
         const isScaled = scale.value > 1;
-
         const isScaledAndDisabledSwipeToClose =
           disableSwipeToCloseOnScaledImage && isScaled;
-
         if (
           onSwipeToClose &&
           shouldClose.value &&
@@ -666,9 +554,7 @@ const ResizableImage = React.memo(
           runOnJS(onSwipeToClose)();
           return;
         }
-
         shouldClose.value = false;
-
         if (newHeight > height) {
           isMoving.y.value = 1;
           offset.y.value = withDecaySpring(
@@ -687,17 +573,13 @@ const ResizableImage = React.memo(
         } else {
           const diffY =
             translation.y.value + offset.y.value - (newHeight - height) / 2;
-
           if (newHeight <= height && diffY !== height - diffY - newHeight) {
             const moveTo = diffY - (height - newHeight) / 2;
-
             translation.y.value = withTiming(translation.y.value - moveTo);
           }
         }
       });
-
     const interruptedScroll = useSharedValue(false);
-
     const tapGesture = Gesture.Tap()
       .enabled(!!onTap)
       .numberOfTaps(1)
@@ -716,7 +598,6 @@ const ResizableImage = React.memo(
         }
         interruptedScroll.value = false;
       });
-
     const doubleTapGesture = Gesture.Tap()
       .enabled(doubleTapEnabled)
       .numberOfTaps(2)
@@ -735,12 +616,9 @@ const ResizableImage = React.memo(
         if (onDoubleTap) {
           runOnJS(onDoubleTap)(scale.value === 1 ? doubleTapScale : 1);
         }
-
         if (scale.value === 1) {
           scale.value = withTiming(doubleTapScale);
-
           setAdjustedFocal({ focalX: x, focalY: y });
-
           offset.x.value = withTiming(
             clampX(
               adjustedFocal.x.value +
@@ -759,7 +637,6 @@ const ResizableImage = React.memo(
           resetValues();
         }
       });
-
     const longPressGesture = Gesture.LongPress()
       .enabled(!!onLongPress)
       .maxDistance(10)
@@ -773,7 +650,6 @@ const ResizableImage = React.memo(
           runOnJS(onLongPress)();
         }
       });
-
     const containerAnimatedStyle = useAnimatedStyle(() => {
       return {
         zIndex: index === currentIndex.value ? 1 : 0,
@@ -784,7 +660,6 @@ const ResizableImage = React.memo(
         ],
       };
     });
-
     const animatedStyle = useAnimatedStyle(() => {
       const isNextForLast =
         loop &&
@@ -810,34 +685,36 @@ const ResizableImage = React.memo(
         ],
       };
     });
-
-    return (
-      <GestureDetector
-        gesture={Gesture.Race(
+    return React.createElement(
+      GestureDetector,
+      {
+        gesture: Gesture.Race(
           Gesture.Simultaneous(
             longPressGesture,
             Gesture.Race(panGesture, pinchGesture)
           ),
           Gesture.Exclusive(doubleTapGesture, tapGesture)
-        )}
-      >
-        <Animated.View
-          style={[
+        ),
+      },
+      React.createElement(
+        Animated.View,
+        {
+          style: [
             styles.itemContainer,
             { width, height },
             containerAnimatedStyle,
-          ]}
-        >
-          <Animated.View style={[{ width, height }, animatedStyle]}>
-            {renderItem(itemProps)}
-          </Animated.View>
-        </Animated.View>
-      </GestureDetector>
+          ],
+        },
+        React.createElement(
+          Animated.View,
+          { style: [{ width, height }, animatedStyle] },
+          renderItem(itemProps)
+        )
+      )
     );
   }
 );
-
-const GalleryComponent = <T extends any>(
+const GalleryComponent = (
   {
     data,
     renderItem = defaultRenderImage,
@@ -863,32 +740,24 @@ const GalleryComponent = <T extends any>(
     onScaleChange,
     onScaleChangeRange,
     ...eventsCallbacks
-  }: GalleryProps<T>,
-  ref: GalleryReactRef
+  },
+  ref
 ) => {
   const windowDimensions = useWindowDimensions();
   const dimensions = containerDimensions || windowDimensions;
-
   const isLoop = loop && data?.length > 1;
-
   const [index, setIndex] = useState(initialIndex);
-
-  const refs = useRef<ItemRef[]>([]);
-
-  const setRef = useCallback((itemIndex: number, value: ItemRef) => {
+  const refs = useRef([]);
+  const setRef = useCallback((itemIndex, value) => {
     refs.current[itemIndex] = value;
   }, []);
-
   const translateX = useSharedValue(
     initialIndex * -(dimensions.width + emptySpaceWidth)
   );
-
   const currentIndex = useSharedValue(initialIndex);
-
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: rtl ? -translateX.value : translateX.value }],
   }));
-
   const changeIndex = useCallback(
     (newIndex) => {
       onIndexChange?.(newIndex);
@@ -896,20 +765,17 @@ const GalleryComponent = <T extends any>(
     },
     [onIndexChange, setIndex]
   );
-
   useAnimatedReaction(
     () => currentIndex.value,
     (newIndex) => runOnJS(changeIndex)(newIndex),
     [currentIndex, changeIndex]
   );
-
   useEffect(() => {
     translateX.value = index * -(dimensions.width + emptySpaceWidth);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dimensions.width]);
-
   useImperativeHandle(ref, () => ({
-    setIndex(newIndex: number, animated?: boolean) {
+    setIndex(newIndex, animated) {
       refs.current?.[index].reset(false);
       setIndex(newIndex);
       currentIndex.value = newIndex;
@@ -926,7 +792,6 @@ const GalleryComponent = <T extends any>(
       refs.current?.forEach((itemRef) => itemRef.reset(animated));
     },
   }));
-
   useEffect(() => {
     if (index >= data.length) {
       const newIndex = data.length - 1;
@@ -936,34 +801,34 @@ const GalleryComponent = <T extends any>(
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data?.length, dimensions.width]);
-
-  return (
-    <GestureHandlerRootView style={[styles.container, style]}>
-      <Animated.View style={[styles.rowContainer, animatedStyle]}>
-        {data.map((item: any, i) => {
-          const isFirst = i === 0;
-
-          const outOfLoopRenderRange =
-            !isLoop ||
-            (Math.abs(i - index) < data.length - (numToRender - 1) / 2 &&
-              Math.abs(i - index) > (numToRender - 1) / 2);
-
-          const hidden =
-            Math.abs(i - index) > (numToRender - 1) / 2 && outOfLoopRenderRange;
-
-          if (hidden) {
-            return null;
-          }
-
-          return (
-            // @ts-ignore
-            <ResizableImage
-              key={
-                keyExtractor
+  return React.createElement(
+    GestureHandlerRootView,
+    { style: [styles.container, style] },
+    React.createElement(
+      Animated.View,
+      { style: [styles.rowContainer, animatedStyle] },
+      data.map((item, i) => {
+        const isFirst = i === 0;
+        const outOfLoopRenderRange =
+          !isLoop ||
+          (Math.abs(i - index) < data.length - (numToRender - 1) / 2 &&
+            Math.abs(i - index) > (numToRender - 1) / 2);
+        const hidden =
+          Math.abs(i - index) > (numToRender - 1) / 2 && outOfLoopRenderRange;
+        if (hidden) {
+          return null;
+        }
+        return (
+          // @ts-ignore
+          React.createElement(
+            ResizableImage,
+            Object.assign(
+              {
+                key: keyExtractor
                   ? keyExtractor(item, i)
-                  : item.id || item.key || item._id || item
-              }
-              {...{
+                  : item.id || item.key || item._id || item,
+              },
+              {
                 translateX,
                 item,
                 currentIndex,
@@ -990,23 +855,18 @@ const GalleryComponent = <T extends any>(
                 setRef,
                 ...eventsCallbacks,
                 ...dimensions,
-              }}
-            />
-          );
-        })}
-      </Animated.View>
-    </GestureHandlerRootView>
+              }
+            )
+          )
+        );
+      })
+    )
   );
 };
-
-const Gallery = React.forwardRef(GalleryComponent) as <T extends any>(
-  p: GalleryProps<T> & { ref?: GalleryReactRef }
-) => React.ReactElement;
-
+const Gallery = React.forwardRef(GalleryComponent);
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: 'black' },
   rowContainer: { flex: 1 },
   itemContainer: { position: 'absolute' },
 });
-
 export default Gallery;

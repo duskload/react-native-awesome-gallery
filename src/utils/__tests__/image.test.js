@@ -1,13 +1,7 @@
 import { resizeImage } from '../image';
-
-type Size = [number, number]; // [width, height]
-
 describe('image', () => {
   /* eslint-disable */
-  const testData: {
-    container: Size;
-    items: [Size, Size][]; // [imageSize, expectingSize]
-  }[] = [
+  const testData = [
     {
       container: [100, 100],
       items: [
@@ -23,7 +17,6 @@ describe('image', () => {
           [150, 150],
           [100, 100],
         ],
-
         [
           [100, 200],
           [50, 100],
@@ -32,7 +25,6 @@ describe('image', () => {
           [200, 100],
           [100, 50],
         ],
-
         [
           [25, 50],
           [50, 100],
@@ -41,7 +33,6 @@ describe('image', () => {
           [50, 25],
           [100, 50],
         ],
-
         [
           [25, 500],
           [5, 100],
@@ -63,7 +54,6 @@ describe('image', () => {
           [1000, 1000],
           [10, 10],
         ],
-
         [
           [1, 2],
           [10, 20],
@@ -72,7 +62,6 @@ describe('image', () => {
           [2, 1],
           [10, 5],
         ],
-
         [
           [500, 1000],
           [10, 20],
@@ -94,7 +83,6 @@ describe('image', () => {
           [1000, 1000],
           [10, 10],
         ],
-
         [
           [2, 1],
           [20, 10],
@@ -103,7 +91,6 @@ describe('image', () => {
           [1, 2],
           [5, 10],
         ],
-
         [
           [1000, 500],
           [20, 10],
@@ -116,17 +103,14 @@ describe('image', () => {
     },
   ];
   /* eslint-enable */
-
   describe('resizeImage', () => {
     testData.forEach(({ container, items }) => {
       const [containerWidth, containerHeight] = container;
-
       describe(`container ${containerWidth}x${containerHeight}`, () => {
         items.forEach(([image, expecting]) => {
           const [imageWidth, imageHeight] = image;
           const [expectedWidth, expectedHeight] = expecting;
-          const toObj = (size: Size) => ({ width: size[0], height: size[1] });
-
+          const toObj = (size) => ({ width: size[0], height: size[1] });
           test(
             `image ${imageWidth}x${imageHeight} -> ` +
               `expected ${expectedWidth}x${expectedHeight}`,
